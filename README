@@ -1,5 +1,5 @@
 Basicly, it is the same thing as the previous project gMapAndExcel.
-However, i have make some nice improvement to it. It is now use a excel template
-file as the main information source. And it can only be run at Windows, with 
-simple UI. You can set the line's color and the sector's radius in the template
+However, i have make some nice improvement to it. It is now use an excel template
+file as the main information source. And it can only be run at Windows, but with 
+simple GUI. You can set the line's color and the sector's radius in the template
 file. That's all:)
