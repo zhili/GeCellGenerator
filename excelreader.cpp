@@ -72,6 +72,16 @@ namespace msexcel {
 		return rows.intVal;
 	}
 
+	int excelreader::colCount() {
+		_variant_t range;
+        AutoWrap(DISPATCH_PROPERTYGET, &range, pXlSheet, L"UsedRange", 0);
+		_variant_t result;
+		AutoWrap(DISPATCH_PROPERTYGET,&result, range.pdispVal, L"Columns", 0);
+		_variant_t rows;
+		AutoWrap(DISPATCH_PROPERTYGET,&rows, result.pdispVal, L"Count", 0);
+		return rows.intVal;
+	}
+
  /**
      * set single unit or a range
      * for example:

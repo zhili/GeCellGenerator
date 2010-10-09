@@ -3,35 +3,14 @@
 #include "Resource.h"
 #include <tchar.h>
 
-
-#define GSM_EXCEL_FILE 1
-
-#ifdef GSM_EXCEL_FILE
-#define LATITUDE_COLUMN 5 //纬度
-#define LONGITUDE_COLUMN 4 //经度
-#define DOA_COLUMN 6  // 方向角
-#define CELLNAME_COLUMN 2  // 小区名
-#define CELLINDENTITY_COLUMN 3  // ci
-#define HEIGHT_COLUMN 8  // 高度
-#define DOWNTILE_COLUMN 7 // 下倾角
-#define INSTALLMODE_COLUMN 9 // 安装方式
-#define SHARETYPE_COLUMN 10  // 天线型号
-#define SECTOR_RADIUS_COLUMN 11 // 小区半径
-#define INPUT_FILE "基站物理信息.xls"
+#define BSNAME_COLUMN 1
+#define LATITUDE_COLUMN 3 //纬度
+#define LONGITUDE_COLUMN 2 //经度
+#define DOA_COLUMN 5  // 方向角
+#define SECTOR_RADIUS_COLUMN 4 // 小区半径
+#define INPUT_FILE "中山基站物理信息.xls"
 #define OUTPUT_FILE "geCells.kml"
-#else
-#define LATITUDE_COLUMN 15
-#define LONGITUDE_COLUMN 14
-#define DOA_COLUMN 16
-#define CELLNAME_COLUMN 12
-#define CELLINDENTITY_COLUMN 9
-#define HEIGHT_COLUMN 21
-#define DOWNTILE_COLUMN 17
-#define INSTALLMODE_COLUMN 20
-#define SHARETYPE_COLUMN 30
-#define INPUT_FILE "WCDMA基站物理信息.xls"
-#define OUTPUT_FILE "WCDMACells.kml"
-#endif
+
 
 #include <iostream>
 #include "kml/dom.h"
@@ -76,15 +55,15 @@ using kmldom::LinearRingPtr;
 const int sectorSize = 30; // sector size in degree.
 const int altitudeSize = 50;
 
-typedef struct cellInfomation {
-	std::string cellName;
-	std::string  cellIndentity;
-	std::string  height;
-	std::string  downTile;
-	std::string InstallMode;
-	std::string shareType;
-//	std::string address;
-} cellInfomation;
+//typedef struct cellInfomation {
+//	std::string cellName;
+//	std::string  cellIndentity;
+//	std::string  height;
+//	std::string  downTile;
+//	std::string InstallMode;
+//	std::string shareType;
+////	std::string address;
+//} cellInfomation;
 
 
 PlacemarkPtr CreatePlacemark(kmldom::KmlFactory* factory,
@@ -162,7 +141,8 @@ inline std::string ToString(T value) {
 
 static PlacemarkPtr CreateGraphicPlacemark(kmldom::KmlFactory* factory,
                              const std::string& name,
-                             double lat, double lng, double doa, cellInfomation &ci, double sradius) {
+							 double lat, double lng, double doa, std::vector<std::string> &tc, std::vector<std::string> &ci, double sradius) 
+{
   // const double outer_corners[] = {
   // 							    37.80198570954779,-122.4319382787491,
   // 							    37.80166118304026,-122.4318730681021,
@@ -173,12 +153,16 @@ static PlacemarkPtr CreateGraphicPlacemark(kmldom::KmlFactory* factory,
   placemark->set_name(name);
   //const std::string KN2("Install Mode");
   //const std::string KV2(ci.InstallMode);
-const std::string Names[] = {"Cell Name", "CI", "高度", "下倾角", "安装方式", "天线型号"};
-const std::string Values[] = { ci.cellName, ci.cellIndentity, ci.height, ci.downTile, ci.InstallMode, ci.shareType};
+// const std::string Names[] = {"Cell Name", "CI", "高度", "下倾角", "安装方式", "天线型号"};
+// const std::string Values[] = { ci.cellName, ci.cellIndentity, ci.height, ci.downTile, ci.InstallMode, ci.shareType};
 
-for (int i = 0; i < 6; ++i) 
-  kmlconvenience::AddExtendedDataValue(Names[i], Values[i], placemark);
-  
+  //for (int i = 7; i < ci.size(); ++i) 
+  int i = 3;
+  while ( ++i < ci.size()) { 
+    if (ci[i].empty() || tc[i].empty())
+		continue;
+    kmlconvenience::AddExtendedDataValue(tc[i], ci[i], placemark);
+  }
 //placemark->set_description("hi there!");
   placemark->set_styleurl("#msn-yzl-pushpin-sector00");
 
@@ -349,6 +333,13 @@ int opendialog(HWND _hWndDlg) {
 	return 0;
 }
 
+int PrintNumber(__in int nNumber)
+{
+  _TCHAR szBuffer[100];
+  
+  _stprintf(szBuffer, _T("%i"), nNumber);
+  return MessageBox(hWnd, szBuffer, _T("wat"), MB_OK);
+}
 
 int pp(HWND _hWndDlg) {
 
@@ -356,7 +347,7 @@ int pp(HWND _hWndDlg) {
   //time_t begin	= clock();
 
 
-  //wchar_t* excelFileName;// = L"WCDMA基站物理信息.xls";
+  //wchar_t* excelFileName;// = L"中山WCDMA基站物理信息.xls";
  // if (argc < 2) {
 	//strcpy_s(fileName,INPUT_FILE);
  // } else if (argc == 2) {
@@ -408,10 +399,14 @@ int pp(HWND _hWndDlg) {
 //    wcscat_s(wcstring, fileName);
     //wcout << wcstring << endl;
 
-  msexcel::excelreader eo(szFileName, L"基站物理参数表");
-  
-  const int maxRows = eo.rowCount() + 1;
+  //msexcel::excelreader eo(szFileName, L"基站物理参数表");
+  msexcel::excelreader *ex = new msexcel::excelreader(szFileName, L"基站物理参数表");
+  //PrintNumber(es->rowCount());
+  //delete es;
 
+  const int maxRows = ex->rowCount() + 1;
+  const int maxCols = ex->colCount() + 1;
+//PrintNumber(maxCols);
   hProgress  = CreateWindowEx(0, PROGRESS_CLASS, NULL,
 		               WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
 			      80, 60, 300, 17,
@@ -423,11 +418,11 @@ int pp(HWND _hWndDlg) {
   //SendMessage(hProgress, PBM_SETSTEP , (WPARAM)(maxRows/100), 0);
 	// Load a workbook with one sheet, display its contents and save into another file.
   // set the line color
-  if ("green" == eo.GetDataAsString(1,4)) 
+  if ("green" == ex->GetDataAsString(1,4)) 
 	  lineColor.assign("ff00ff00"); // green
-  else if ("red" == eo.GetDataAsString(1,4)) 
+  else if ("red" == ex->GetDataAsString(1,4)) 
 	  lineColor.assign("ff0000ff"); // red
-  else if ("yellow" == eo.GetDataAsString(1,4)) 
+  else if ("yellow" == ex->GetDataAsString(1,4)) 
 	  lineColor.assign("ff00ffff"); // yellow
   else
 	  lineColor.assign("ffff0000"); // blue
@@ -499,32 +494,44 @@ int pp(HWND _hWndDlg) {
 
   //int m_nMax;
   //int m_nValue = 0;
+  
+  // column tile
+  std::vector<std::string> titleCol;
+  for (int c = 1; c < maxCols; ++c) {
+    titleCol.push_back(ex->GetDataAsString(2,c));
+  }
+
   for(int r = 3; r < maxRows; ++r) {
   	//for(size_t c = 0; c < maxCols; ++c) {
 	//BasicExcelCell* cell = sheet1->Cell(r,0);
 	DWORD newPosition = (DWORD) ((((float) r) / maxRows) * 65535 * 0.95);
     SendMessage(hProgress, PBM_SETPOS, (WPARAM) newPosition, 0);
-	if (eo.GetDataAsString(r, 1).empty()) {
+	if (ex->GetDataAsString(r, 1).empty()) {
  		  //printf("empty string");
 		continue;
 	}
 
 	// todo:remove empty lat and lon site because it's too ugly.
-	double lat = eo.GetDataAsDouble(r, LATITUDE_COLUMN); //->Cell(r,14)->GetDouble();
-	double lng = eo.GetDataAsDouble(r, LONGITUDE_COLUMN); //sheet1->Cell(r,13)->GetDouble();
-	double doa = eo.GetDataAsDouble(r, DOA_COLUMN); //sheet1->Cell(r, 15)->GetDouble();
-	double sR = eo.GetDataAsDouble(r, SECTOR_RADIUS_COLUMN); 
-	cellInfomation ci;
-	ci.cellName = eo.GetDataAsString(r, CELLNAME_COLUMN); //sheet1->Cell(r,11)->GetString();
-	ci.cellIndentity = eo.GetDataAsString(r, CELLINDENTITY_COLUMN); // sheet1->Cell(r, 8)->GetDouble();
-	ci.height = eo.GetDataAsString(r, HEIGHT_COLUMN); //sheet1->Cell(r, 20)->GetDouble();
-	ci.downTile = eo.GetDataAsString(r, DOWNTILE_COLUMN);// sheet1->Cell(r, 16)->GetDouble();
-	ci.InstallMode = eo.GetDataAsString(r, INSTALLMODE_COLUMN);//WideToCString(sheet1->Cell(r, 19)->GetWString());
-	ci.shareType = eo.GetDataAsString(r, SHARETYPE_COLUMN); //WideToCString(sheet1->Cell(r, 29)->GetWString());
-		
-    folder->add_feature(CreatePlacemark(kml_factory, eo.GetDataAsString(r, 1), lat, lng)); // name folder
+	double lat = ex->GetDataAsDouble(r, LATITUDE_COLUMN); //->Cell(r,14)->GetDouble();
+	double lng = ex->GetDataAsDouble(r, LONGITUDE_COLUMN); //sheet1->Cell(r,13)->GetDouble();
+	double doa = ex->GetDataAsDouble(r, DOA_COLUMN); //sheet1->Cell(r, 15)->GetDouble();
+	double sR = ex->GetDataAsDouble(r, SECTOR_RADIUS_COLUMN); 
+	std::string bsName = ex->GetDataAsString(r, BSNAME_COLUMN);
+	//cellInfomation ci;
+	//ci.cellName = ex->GetDataAsString(r, CELLNAME_COLUMN); //sheet1->Cell(r,11)->GetString();
+	//ci.cellIndentity = eo.GetDataAsString(r, CELLINDENTITY_COLUMN); // sheet1->Cell(r, 8)->GetDouble();
+	//ci.height = eo.GetDataAsString(r, HEIGHT_COLUMN); //sheet1->Cell(r, 20)->GetDouble();
+	//ci.downTile = eo.GetDataAsString(r, DOWNTILE_COLUMN);// sheet1->Cell(r, 16)->GetDouble();
+	//ci.InstallMode = eo.GetDataAsString(r, INSTALLMODE_COLUMN);//WideToCString(sheet1->Cell(r, 19)->GetWString());
+	//ci.shareType = eo.GetDataAsString(r, SHARETYPE_COLUMN); //WideToCString(sheet1->Cell(r, 29)->GetWString());
+	std::vector<std::string> cellInfo;
+    for (int c = 1; c < maxCols; ++c) {
+	  cellInfo.push_back(ex->GetDataAsString(r,c));
+    }
 
-	graphicFolder->add_feature(CreateGraphicPlacemark(kml_factory,eo.GetDataAsString(r, 1), lat, lng, doa, ci, sR)); // grephic layer folder
+    folder->add_feature(CreatePlacemark(kml_factory, bsName, lat, lng)); // name folder
+
+	graphicFolder->add_feature(CreateGraphicPlacemark(kml_factory, bsName, lat, lng, doa, titleCol, cellInfo, sR)); // grephic layer folder
     //SendMessage(hProgress, PBM_STEPIT, 0, 0);
 
 	//m_nValue += 1;
@@ -532,7 +539,7 @@ int pp(HWND _hWndDlg) {
 
   	//}
   }
- 
+  delete ex; // close the excel file and release memory
   document->add_feature(folder);
   document->add_feature(graphicFolder);
 

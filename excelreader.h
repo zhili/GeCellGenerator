@@ -84,6 +84,7 @@ namespace msexcel {
 
 	public:
 		int rowCount();
+		int colCount();
 		void SetData(const std::wstring& cell,
 						 const std::wstring& data);     // set a range
 		void SetData(int nRow, int nBeg,
