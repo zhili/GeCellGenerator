@@ -347,7 +347,7 @@ int pp(HWND _hWndDlg) {
   //time_t begin	= clock();
 
 
-  //wchar_t* excelFileName;// = L"中山WCDMA基站物理信息.xls";
+  //wchar_t* excelFileName;// = L"WCDMA基站物理信息.xls";
  // if (argc < 2) {
 	//strcpy_s(fileName,INPUT_FILE);
  // } else if (argc == 2) {
